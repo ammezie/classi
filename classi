@@ -1,0 +1,108 @@
+#!/usr/bin/php
+<?php 
+
+ini_set('register_argc_argv', 0);  
+
+if (!isset($argc) || is_null($argc))
+{ 
+    die('Not CLI mode');
+} else {
+    echo "
+    	Welcome to the classi command line help.\n Run `php classi setup` to configure your application 
+    ";
+    if(isset($argv[1])){
+    	if ($argv[1]=="setup"){
+    		echo "We would need some information from you, before we can setup your application\n Please hold on and take a cup of tea while we do the setup for you.\n
+    			 ";
+    		echo "What is the name of your application?\n";
+    		$name = fgets(STDIN);
+    		echo "Application name will be set to $name\n";
+    		echo "What database driver would you be using? type mysql for MySQL/Mariadb, postgre for Postgres, redis for redis\n";
+    		$db_driver = fgets(STDIN);
+    		echo "What is the address of your database host? \n";
+    		$db_host = fgets(STDIN);
+    		echo "What is your database username? \n";
+    		$db_username = fgets(STDIN);
+    		echo "What is your database port? leaving this empty would set it to 3306.\n";
+    		$db_port = fgets(STDIN);
+    		if($db_port=="\n"){
+    			$db_port = 3306;
+    		}
+    		echo "What is your database password? \n";
+    		$db_pass = fgets(STDIN);
+
+    		echo "What is your database name called? \n";
+    		$db_name = fgets(STDIN);
+
+
+
+    		if(!file_exists('.env')){
+    			if(file_exists('.env.example')){
+    				copy('.env.example','.env');
+    			}else{
+    				fopen(".env", "w") or die("Unable to create the environment file, please try creating it yourself. \n");
+    			}
+    		}
+    		$laravel_key = shell_exec("php artisan key:generate");
+			// Array of values to replace.
+			$replace_with = array(
+			  'DB_CONNECTION' => $db_driver,
+			  'DB_HOST'=>$db_host,
+			  'DB_PORT'=>$db_port,
+			  'DB_DATABASE'=>$db_name,
+			  'DB_USERNAME'=>$db_username,
+			  'DB_PASSWORD'=>$db_pass,
+			  'CLASSI_ID'=>'CLASSI1',
+			  'CLASSI_APP_NAME'=> $name
+			);
+
+			$env = file_get_contents('.env');
+
+            // Split string on every " " and write into array
+            $env = preg_split('/\s+/', $env);;
+
+            // Loop through given data
+            foreach($replace_with as $key => $value){
+
+                // Loop through .env-data
+                foreach($env as $env_key => $env_value){
+                	
+
+                    // Turn the value into an array and stop after the first split
+                    // So it's not possible to split e.g. the App-Key by accident
+                    $entry = explode("=", $env_value, 2);
+
+                    // Check, if new key fits the actual .env-key
+                    if($entry[0] == $key){
+                        // If yes, overwrite it with the new one
+                        $env[$env_key] = $key . "=" . $value;
+                    } else {
+                        // If not, keep the old one
+                        $env[$env_key] = $env_value;
+                    }
+
+                }
+                
+            }
+
+         	//print_r($env);
+            foreach ($replace_with as $key => $value) {
+            	if(in_array($key.'='.$value."", $env)){
+            	}else{
+            		array_push($env, $key.'='.$value);
+            	}
+            }
+            // Turn the array back to an String
+            $env = implode("\n", $env);
+            // And overwrite the .env with the new data
+            file_put_contents('.env', $env);
+            echo "key is ".$laravel_key. "\n";
+            echo "Classi setup successful.\n";
+    }else{
+    	die("Only the setup argument is accepted \n");
+    }
+    	
+    }else{
+    	exit();
+    }
+  }
